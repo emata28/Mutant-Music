@@ -1,0 +1,10 @@
+"use strict";
+exports.__esModule = true;
+//import * as fs from 'fs';
+// import { complex as fft } from 'fft';
+//import * as WavEncoder from 'wav-encoder';
+// import { default as ft } from 'fourier-transform';
+//import * as WavDecoder from 'wav-decoder';
+var constantes = require("./library/consts");
+var URL = constantes.ELASTIC_IP + ':' + constantes.ELASTIC_PORT;
+console.log(URL);

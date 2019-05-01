@@ -1,18 +1,17 @@
-export class Sector {
-  private sector: string;
-  private lowerRange: number; // 0.8
-  private higherRange: number; // 1
+export function getSector(pNum1: number,pNum2: number): string {
+  if(pNum1<0.0001&&pNum2<0.0001&&pNum1>-0.0001&&pNum2>-0.0001){
+    return  "F"
+  }else if(-0.001<pNum1-pNum2&&pNum1-pNum2<=0.001){
+    return "P";
+  }else if(pNum1-pNum2>=0.001){
+    return "B";
+  }else {
+    return "S";
 
-  constructor(pSector: string, pLower: number, pHigher: number) {
-    this.sector = pSector;
-    this.lowerRange = pLower;
-    this.higherRange = pHigher;
   }
 
-  public checkIfInside(pNum: number): string {
-    if (pNum <= this.higherRange && pNum > this.lowerRange) {
-      return this.sector;
-    }
-    return '';
-  }
+
+
+
+
 }

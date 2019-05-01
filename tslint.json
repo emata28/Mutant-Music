@@ -16,7 +16,10 @@
                 "functions": "never",
                 "typeLiterals": "ignore"
             }
-        }]
+        }],
+        "no-increment-decrement": false,
+        "only-arrow-functions": false,
+        "ter-prefer-arrow-callback": [false]
     },
     "rulesDirectory": []
 }

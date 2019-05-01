@@ -4,6 +4,8 @@ import * as WavEncoder from 'wav-encoder';
 // import { default as ft } from 'fourier-transform';
 import * as WavDecoder from 'wav-decoder';
 import { getSector } from './library/sector';
+let SectorsS1 : String[] = ["",""];
+let SectorsS2 : String[] = ["",""];
 
 let S1: string = process.argv[3];
 let S2: string = process.argv[4];
@@ -19,56 +21,110 @@ const readFile = (filepath: string) => {
     });
 };
 
-readFile(S1).then((buffer) => {
+readFile(S2).then((buffer) => {
     return WavDecoder.decode(buffer);
 }).then(function(audioData) {
-    console.log("amplisando 30%");
-    const size = 20000;
-    let SectorsS1 : String[] = ["",""];
-    let tempLast1 = "";
-    let tempLast2 = "";
 
-    let tempNew1 = "";
-    let tempNew2 = "";
 
-    for(var i=0; i<audioData.channelData[0].length; i+=44) {
-        tempLast1 = "";
-        tempLast2 = "";
-        for(var a=i; a<44+i; a+=4){
-            tempNew1= getSector(audioData.channelData[0][a]);
-            tempNew2=getSector(audioData.channelData[1][a]);
-            if(tempLast1!=tempNew1){
-                SectorsS1[0]+=tempNew1;
-            }
-            if(tempLast2!=tempNew2){
-                SectorsS1[1]+=tempNew2;
+    let channel1 ="";
+    let channel2 ="";
+    for(var i=0; i<audioData.channelData[0].length; i+=22) {
 
-            }
-            tempLast1=tempNew1;
-            tempLast2=tempNew2;
+        channel1= getSector(audioData.channelData[0][i],audioData.channelData[0][i+22]);
+        channel2=getSector(audioData.channelData[1][i],audioData.channelData[1][i+22]);
+
+        SectorsS2[0]=SectorsS2[0]+channel1;
+        SectorsS2[1]=SectorsS2[1]+channel2;
+
+
+    }
+
+
+
+}).then(function(Analyze){
+
+    let Combinaciones : String[] = [];
+    let concurrenciaValueCH1 : number[] = [];
+    let concurrenciaValueCH2 : number[] = [];
+    let infoCH1=[];
+    let infoCH2 =[];
+    let temp1 ="";
+
+    let index=0;
+    let count=0;
+    while(count+1!=SectorsS2[0].length){
+        temp1=SectorsS2[0][count]+SectorsS2[0][count+1];
+        index = Combinaciones.indexOf(temp1);
+
+        if(index==-1){
+            Combinaciones.push(temp1);
+            concurrenciaValueCH1.push(1);
+        }else{
+            concurrenciaValueCH1[index]+=1;
 
         }
 
+
+        count++;
     }
-    console.log(SectorsS1);
-    /*for(var i=0; i<audioData.channelData[0].length; i++) {
-       audioData.channelData[1][i]+=audioData.channelData[0][i];
-       audioData.channelData[0][i]*=20;
-       audioData.channelData[0][i]+=0.000000259254;
-     }
+    infoCH1.push(Combinaciones);
+    infoCH1.push(concurrenciaValueCH1);
+    //infoCH2.push(Combinaciones);
+    //infoCH2.push(concurrenciaValueCH2);
 
-    for(var i=44100*5; i<44100*10; i++) {
-        audioData.channelData[0][i-44100*50] = audioData.channelData[0][i];
+    count = 0;
+    //while(count !=5){
+    //    concurrenciaValueCH1.
+   // }
+    console.log(infoCH1);
+
+
+    var topValues = infoCH1.sort((a,b)=>b-a)
+    console.log(topValues); // [ 1, 2, 3, 8, 12 ]
+
+    let top3Number;
+})
+
+
+
+readFile(S1).then((buffer) => {
+    return WavDecoder.decode(buffer);
+}).then(function(audioData) {
+
+
+    let channel1 ="";
+    let channel2 ="";
+    for(var i=0; i<audioData.channelData[0].length; i+=22) {
+
+        channel1= getSector(audioData.channelData[0][i],audioData.channelData[0][i+22]);
+        channel2=getSector(audioData.channelData[1][i],audioData.channelData[1][i+22]);
+
+        SectorsS1[0]=SectorsS1[0]+channel1;
+        SectorsS1[1]=SectorsS1[1]+channel2;
+
+
     }
+    console.log("S2");
+    console.log(SectorsS2[0].length);
+    console.log("S1");
+    console.log(SectorsS1[0].length);
 
-    for(var i=44100*11; i<44100*16; i++) {
-        audioData.channelData[0][i+44100*60] = audioData.channelData[0][i];
-    }
 
-
-    console.log("writing...");
-    WavEncoder.encode(audioData).then((buffer: any) => {
-        // @ts-ignore
-        fs.writeFileSync(S1, new Buffer.from(buffer));
-    });*/
 });
+function  indexOfMax(arr: number[]) {
+    if (arr.length === 0) {
+        return -1;
+    }
+
+    var max = arr[0];
+    var maxIndex = 0;
+
+    for (var i = 1; i < arr.length; i++) {
+        if (arr[i] > max) {
+            maxIndex = i;
+            max = arr[i];
+        }
+    }
+
+    return maxIndex;
+}

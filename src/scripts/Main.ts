@@ -1,21 +1,19 @@
 import * as fs from 'fs';
-// import { complex as fft } from 'fft';
-import * as WavEncoder from 'wav-encoder';
 // import { default as ft } from 'fourier-transform';
 import * as WavDecoder from 'wav-decoder';
-import {Pattern} from './library/Patterns';
+// import { complex as fft } from 'fft';
+import * as WavEncoder from 'wav-encoder';
+import { Pattern } from './library/Patterns';
 
-import {getSector} from './library/sector';
-import Patterns from "../../build/library/Patterns";
+import { getSector } from './library/sector';
 
-let SectorsS1: String[] = ["", ""];
-let SectorsS2: String[] = ["", ""];
+const sectorsS1: string[] = ['', ''];
+const sectorsS2: string[] = ['', ''];
 let infoCH1: Pattern[] = [];
-let infoCH2: Pattern[] = [];
-let S1: string = process.argv[3];
-let S2: string = process.argv[4];
-let command: string = process.argv[2];
-
+const infoCH2: Pattern[] = [];
+const S1: string = process.argv[3];
+const S2: string = process.argv[4];
+const command: string = process.argv[2];
 
 const readFile = (filepath: string) => {
   return new Promise((resolve, reject) => {
@@ -31,78 +29,73 @@ const readFile = (filepath: string) => {
 readFile(S2).then((buffer) => {
   return WavDecoder.decode(buffer);
 }).then(function (audioData) {
-
-  let index = 0;
   let count = 0;
-  let channel1 = "";
-  let channel2 = "";
+  let channel1 = '';
+  let channel2 = '';
   for (let i = 0; i < audioData.channelData[0].length; i += 22) {
 
     channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + 22]);
     channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + 22]);
 
-    SectorsS2[0] = SectorsS2[0] + channel1;
-    SectorsS2[1] = SectorsS2[1] + channel2;
-    if (SectorsS2[0].length > 8) {
-      preAnal(SectorsS2[0], infoCH1, count);
-      preAnal(SectorsS2[1], infoCH2, count);
+    sectorsS2[0] = sectorsS2[0] + channel1;
+    sectorsS2[1] = sectorsS2[1] + channel2;
+    if (sectorsS2[0].length > 8) {
+      preAnal(sectorsS2[0], infoCH1, count);
+      preAnal(sectorsS2[1], infoCH2, count);
 
     }
 
-
     count++;
   }
-  infoCH1 = infoCH1.sort((a, b) => (a.points.length < b.points.length) ? 1 : -1).slice(0, 8);
+  infoCH1 = infoCH1.sort((a, b) => (a.getPoints().length < b.getPoints().length) ? 1 : -1)
+    .slice(0, 8);
   count = 0;
   let sum = 0;
-  while (count != infoCH1.length) {
-    sum = sum + infoCH1[count].points.length;
+  while (count !== infoCH1.length) {
+    sum = sum + infoCH1[count].getPoints().length;
     count++;
   }
 
   count = 0;
-  while (count != infoCH1.length) {
-    infoCH1[count].calcPorcentage(sum);
+  while (count !== infoCH1.length) {
+    infoCH1[count].calcPercentage(sum);
     count++;
   }
 
   console.log(infoCH1);
 
-
-})
-
+});
 
 readFile(S1).then((buffer) => {
   return WavDecoder.decode(buffer);
 }).then(function (audioData) {
 
-
-  let channel1 = "";
-  let channel2 = "";
-  for (var i = 0; i < audioData.channelData[0].length; i += 22) {
+  let channel1 = '';
+  let channel2 = '';
+  for (let i = 0; i < audioData.channelData[0].length; i += 22) {
 
     channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + 22]);
     channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + 22]);
 
-    SectorsS1[0] = SectorsS1[0] + channel1;
-    SectorsS1[1] = SectorsS1[1] + channel2;
+    sectorsS1[0] = sectorsS1[0] + channel1;
+    sectorsS1[1] = sectorsS1[1] + channel2;
   }
-  let porcentage = compareSegement(SectorsS2[0].length / 2, SectorsS1[0].slice(0, SectorsS2[0].length), infoCH1);
-  if (porcentage > 70) {
+  const percentage = compareSegement(sectorsS2[0].length / 2,
+                                     sectorsS1[0].slice(0, sectorsS2[0].length), infoCH1);
+  if (percentage > 70) {
 
   }
 });
 
-
-function preAnal(pCHString: String, infoCH: Pattern[], count: number) {
-  let temp1 = "";
+function preAnal(pCHString: string, infoCH: Pattern[], count: number) {
+  let temp1 = '';
   let tempPat;
   for (let e = 1; e < 7; e++) {
     temp1 += pCHString[pCHString.length - e];
   }
-  tempPat = infoCH.find(obj => obj._pattern == temp1);
+  tempPat = infoCH.find(obj => obj.getPattern() === temp1);
 
-  if (tempPat == undefined) {
+  if (tempPat === undefined) {
 
     tempPat = new Pattern(temp1);
     tempPat.addPoint(count);
@@ -113,62 +106,58 @@ function preAnal(pCHString: String, infoCH: Pattern[], count: number) {
   }
 }
 
-
-function compareSegement(pCompar: number, pS1Segment: String, pPorcentages: Pattern[]): number {
+function compareSegement(pCompar: number, pS1Segment: string, pPercentages: Pattern[]): number {
   let count = 0;
   let rPoint;
-  let tempString: String = "";
-  let pFinded;
+  let tempString: string = '';
+  let pointsToCompare = pCompar;
   let index = 0;
-  let pPatterFound: String[] = [];
-  let pCoundFound: number[] = [];
+  const pPatterFound: string[] = [];
+  const pCoundFound: number[] = [];
 
-  for (const i in pPorcentages) {
-    pPatterFound.push(pPorcentages[i]._pattern);
+  for (const pattern of pPercentages) {
+    pPatterFound.push(pattern.getPattern());
     pCoundFound.push(0);
   }
 
-
-  while (pCompar != 0) {
+  while (pointsToCompare !== 0) {
     rPoint = Math.floor(Math.random() * pS1Segment.length);
-    pCompar--;
-    tempString = "";
+    pointsToCompare--;
+    tempString = '';
     count = 0;
-    while (count != pPorcentages[0]._pattern.length) {
+    while (count !== pPercentages[0].getPattern().length) {
       tempString = tempString + pS1Segment[rPoint + count];
-
 
       count++;
     }
     index = pPatterFound.indexOf(tempString);
-    if (index != -1) {
+    if (index !== -1) {
       pCoundFound[index] = pCoundFound[index] + 1;
-
 
     }
   }
 
   count = 0;
   let sum = 0;
-  while (count != pCoundFound.length) {
+  while (count !== pCoundFound.length) {
     sum = sum + pCoundFound[count];
     count++;
   }
 
   count = 0;
-  while (count != pCoundFound.length) {
+  while (count !== pCoundFound.length) {
     pCoundFound[count] = (pCoundFound[count]) * 100 / sum;
     count++;
   }
-
 
   count = 0;
   let trues = 0;
   let falses = 0;
 
-  while (count != pPatterFound.length) {
+  while (count !== pPatterFound.length) {
 
-    if (pCoundFound[count] > pPorcentages[count].porcentage - 3 && pCoundFound[count] < pPorcentages[count].porcentage + 3) {
+    if (pCoundFound[count] > pPercentages[count].getPercentage() - 3
+      && pCoundFound[count] < pPercentages[count].getPercentage() + 3) {
       trues++;
     } else {
       falses++;
@@ -178,11 +167,3 @@ function compareSegement(pCompar: number, pS1Segment: String, pPorcentages: Patt
   return (trues) * 100 / (trues + falses);
 
 }
-
-
-
-
-
-
-
-

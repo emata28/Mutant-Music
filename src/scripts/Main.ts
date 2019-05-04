@@ -5,6 +5,8 @@ import * as WavDecoder from 'wav-decoder';
 import * as WavEncoder from 'wav-encoder';
 import { Pattern } from './library/Patterns';
 import { PATTERN_SIZE} from './library/consts';
+import { BIT_RATE} from './library/consts';
+import { LATTER_RATE} from './library/consts';
 
 import { getSector } from './library/sector';
 
@@ -30,9 +32,9 @@ readFile(S2).then((buffer) => {
   return WavDecoder.decode(buffer);
 }).then(function (audioData) {
   let count = 0;
-  for (let i = 0; i < audioData.channelData[0].length; i += 22) {
-    const channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + 22]);
-    const channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + 22]);
+  for (let i = 0; i < audioData.channelData[0].length; i += LATTER_RATE) {
+    const channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + LATTER_RATE]);
+    const channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + LATTER_RATE]);
     sectorsS2[0] = sectorsS2[0] + channel1;
     sectorsS2[1] = sectorsS2[1] + channel2;
     if (sectorsS2[0].length > PATTERN_SIZE) {
@@ -70,9 +72,9 @@ function getSum(pChannel: Pattern[]): number {
 readFile(S1).then((buffer) => {
   return WavDecoder.decode(buffer);
 }).then(function (audioData) {
-  for (let i = 0; i < audioData.channelData[0].length; i += 22) {
-    const channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + 22]);
-    const channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + 22]);
+  for (let i = 0; i < audioData.channelData[0].length; i += LATTER_RATE) {
+    const channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + LATTER_RATE]);
+    const channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + LATTER_RATE]);
     sectorsS1[0] = sectorsS1[0] + channel1;
     sectorsS1[1] = sectorsS1[1] + channel2;
   }
@@ -87,10 +89,10 @@ readFile(S1).then((buffer) => {
     const channel2 = unMatch(audioData, indices, 1);
     createFile(channel1, channel2, "$S1_umt.wav")
   } else if (command === "dj") {
-    const size = Math.round(44100/22 * (Math.random() + 1) / 3);
-    const a = loquesea(0,size);
+    const size = Math.round(BIT_RATE/LATTER_RATE * (Math.random() + 1) / 3);
+    const a = djAnalisis(0,size);
     //console.log(a.length);
-    const b = loquesea(1, size);
+    const b = djAnalisis(1, size);
     //console.log(b.length);
     const newSong = dj(audioData, [a,b]);
     createFile(newSong[0], newSong[1], "$dj.wav");
@@ -98,7 +100,7 @@ readFile(S1).then((buffer) => {
   }
 });
 
-function loquesea(channel: number, size: number) {
+function djAnalisis(channel: number, size: number) {
   let segmentsOno: any[] = [];
   const str: string = getForm(sectorsS1[channel]);
   for (let compared = 0; compared < 210; compared++) {
@@ -301,8 +303,7 @@ function getMatches(): number[] {
     const percentage2 = compareSegment(sectorsS2[0].length / 1.5, sectorsS1[1]
       .slice(i, i + sectorsS2[0].length), infoChannels[1]);
     if (percentage1 >= 70 && percentage2 >= 70) {
-      //console.log("Daar se la come");
-      indices.push(i * 22);
+      indices.push(i * LATTER_RATE);
       i += sectorsS2[0].length;
     }
   }
@@ -310,17 +311,17 @@ function getMatches(): number[] {
 }
 
 function match(audioData:any, indices:number[], pChannel: number): Float32Array {
-  let audio: Float32Array = new Float32Array(indices.length * sectorsS2[pChannel].length * 22);
+  let audio: Float32Array = new Float32Array(indices.length * sectorsS2[pChannel].length * LATTER_RATE);
   let newAudioIndex = 0;
   for (const index of indices) {
-    for (let i = index; i <= index + sectorsS2[pChannel].length * 22; i++) {
+    for (let i = index; i <= index + sectorsS2[pChannel].length * LATTER_RATE; i++) {
       audio[newAudioIndex++] = audioData.channelData[pChannel][i];
     }
   }
   return audio;
 }
 function dj(audioData: any, sectors: any[]): Float32Array[] {
-  const length = 44100 * 60 * (Math.random() + 1);
+  const length = BIT_RATE * 60 * (Math.random() + 1);
   const exit: Float32Array[] = [new Float32Array(length), new Float32Array(length)];
   let exitIndex = 0;
   while (exitIndex < length) {
@@ -329,8 +330,8 @@ function dj(audioData: any, sectors: any[]): Float32Array[] {
     const index = Math.round(Math.random() * (sectors[0].length - 1));
     const data: number[][] = [[],[]];
     for (let side = 0; side < 2; side++) {
-      let sectorIndex = sectors[side][index].index * 66;
-      const sectorSize = sectorIndex + sectors[side][index].sector.length * 66;
+      let sectorIndex = sectors[side][index].index * LATTER_RATE *3;
+      const sectorSize = sectorIndex + sectors[side][index].sector.length * LATTER_RATE *3;
       while (sectorIndex < sectorSize) {
         data[side].push(audioData.channelData[side][sectorIndex]);
         sectorIndex++;
@@ -338,14 +339,14 @@ function dj(audioData: any, sectors: any[]): Float32Array[] {
     }
     let newData = [];
     if (effect === 2) {
-      const effectLength = (Math.random() * 3 + 4) * 44100;
+      const effectLength = (Math.random() * 3 + 4) * BIT_RATE;
       newData = makeLoop(data, effectLength);
     } else if (effect === 1) {
-      const effectLength = 4 * 44100;
+      const effectLength = 4 * BIT_RATE;
       newData = makeLeftToRight(data, effectLength);
 
     } else {
-      const effectLength = (Math.random() * 4 + 6) * 44100;
+      const effectLength = (Math.random() * 4 + 6) * BIT_RATE;
       newData = makeSoundAndSilence(data, effectLength);
     }
     for(let i = 0; i < newData[0].length; i++) {
@@ -356,8 +357,8 @@ function dj(audioData: any, sectors: any[]): Float32Array[] {
   return exit;
 }
 function unMatch(audioData: any, indices: number[], pChannel: number): Float32Array {
-  let l1 = sectorsS1[pChannel].length * 22;
-  let l2 = sectorsS2[pChannel].length * 22 * indices.length;
+  let l1 = sectorsS1[pChannel].length * LATTER_RATE;
+  let l2 = sectorsS2[pChannel].length * LATTER_RATE * indices.length;
   let audio: Float32Array = new Float32Array(l1 - l2);
   let newAudioIndex = 0;
   let i = 0;
@@ -365,13 +366,13 @@ function unMatch(audioData: any, indices: number[], pChannel: number): Float32Ar
     for (; i < index ; i++) {
       audio[newAudioIndex++] = audioData.channelData[pChannel][i];
     }
-    i += sectorsS2[pChannel].length*22
+    i += sectorsS2[pChannel].length*LATTER_RATE
   }
   return audio;
 }
 function createFile(pChannel1: Float32Array, pChannel2: Float32Array, pName: string) {
   const newAudio = {
-    sampleRate: 44100,
+    sampleRate: BIT_RATE,
     numberOfChannels: 2,
     channelData: [
       pChannel1,

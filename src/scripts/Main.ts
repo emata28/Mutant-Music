@@ -73,6 +73,14 @@ if (command === "mt"||command === "umt") {
     sum = sum + infoCH1[count].points.length;
     count++;
   }
+});
+function getSum(pChannel: Pattern[]): number {
+  let sum = 0;
+  for (const pattern of pChannel) {
+    sum += pattern.getPoints().length
+  }
+  return sum;
+}
 
 readFile(S1).then((buffer) => {
   return WavDecoder.decode(buffer);
@@ -202,7 +210,6 @@ function preAnal(pCHString: string, infoCH: Pattern[], count: number) {
     infoCH.push(tempPat);
   } else {
     tempPat.addPoint(count);
-
   }
 }
 
@@ -297,8 +304,8 @@ function compareSegment(pCompar: number, pS1Segment: string, pPercentages: Patte
     count++;
   }
   return (trues) * 100 / (trues + falses);
-
 }
+
 function getMatches(): number[] {
   const indices: number[] = [] ;
   for (let i = 0; i < sectorsS1[0].length - 1; i += Math.floor(sectorsS2[0].length / 32)) {
@@ -374,6 +381,44 @@ function unMatch(audioData: any, indices: number[], pChannel: number): Float32Ar
   }
   return audio;
 }
+
+function dj(audioData: any, sectors: any[]): Float32Array[] {
+  const length = 44100 * 60 * (Math.random() + 1);
+  const exit: Float32Array[] = [new Float32Array(length), new Float32Array(length)];
+  let exitIndex = 0;
+  while (exitIndex < length) {
+    //console.log(exit[0].length);
+    const effect = Math.round(Math.random() * 2);
+    const index = Math.round(Math.random() * (sectors[0].length - 1));
+    const data: number[][] = [[],[]];
+    for (let side = 0; side < 2; side++) {
+      let sectorIndex = sectors[side][index].index * 66;
+      const sectorSize = sectorIndex + sectors[side][index].sector.length * 66;
+      while (sectorIndex < sectorSize) {
+        data[side].push(audioData.channelData[side][sectorIndex]);
+        sectorIndex++;
+      }
+    }
+    let newData = [];
+    if (effect === 2) {
+      const effectLength = (Math.random() * 3 + 4) * 44100;
+      newData = makeLoop(data, effectLength);
+    } else if (effect === 1) {
+      const effectLength = 4 * 44100;
+      newData = makeLeftToRight(data, effectLength);
+
+    } else {
+      const effectLength = (Math.random() * 4 + 6) * 44100;
+      newData = makeSoundAndSilence(data, effectLength);
+    }
+    for(let i = 0; i < newData[0].length; i++) {
+      exit[0][exitIndex] = newData[0][i];
+      exit[1][exitIndex++] = newData[1][i];
+    }
+  }
+  return exit;
+}
+
 function createFile(pChannel1: Float32Array, pChannel2: Float32Array, pName: string) {
   const newAudio = {
     sampleRate: BIT_RATE,

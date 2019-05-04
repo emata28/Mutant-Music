@@ -39,7 +39,7 @@ readFile(S2).then((buffer) => {
         const channel2 = sector_1.getSector(audioData.channelData[1][i], audioData.channelData[1][i + 22]);
         sectorsS2[0] = sectorsS2[0] + channel1;
         sectorsS2[1] = sectorsS2[1] + channel2;
-        if (sectorsS2[0].length > 8) {
+        if (sectorsS2[0].length > 16) {
             preAnal(sectorsS2[0], infoChannels[0], count);
             preAnal(sectorsS2[1], infoChannels[1], count);
         }
@@ -73,16 +73,19 @@ readFile(S1).then((buffer) => {
         sectorsS1[0] = sectorsS1[0] + channel1;
         sectorsS1[1] = sectorsS1[1] + channel2;
     }
-    const indices = getMatches();
     if (command === "mt") {
+        const indices = getMatches();
         const channel1 = match(audioData, indices, 0);
         const channel2 = match(audioData, indices, 1);
         createFile(channel1, channel2, "$S1_mt.wav");
     }
     else if (command === "umt") {
+        const indices = getMatches();
         const channel1 = unMatch(audioData, indices, 0);
         const channel2 = unMatch(audioData, indices, 1);
         createFile(channel1, channel2, "$S1_umt.wav");
+    }
+    else if (command === "dj") {
     }
 });
 function sortChannel(pChannel) {
@@ -92,7 +95,7 @@ function preAnal(pCHString, infoCH, count) {
     //console.log("Use Lube for PreAnal");
     let temp1 = '';
     let tempPat;
-    for (let e = 1; e < 7; e++) {
+    for (let e = 1; e < 15; e++) {
         temp1 += pCHString[pCHString.length - e];
     }
     tempPat = infoCH.find(obj => obj.getPattern() === temp1);
@@ -139,18 +142,22 @@ function compareSegment(pCompar, pS1Segment, pPercentages) {
     }
     count = 0;
     while (count !== pCountFound.length) {
-        pCountFound[count] = (pCountFound[count]) * 100 / sum;
+        pCountFound[count] = sum != 0 ? (pCountFound[count]) * 100 / sum : 0;
         count++;
     }
     count = 0;
     let trues = 0;
     let falses = 0;
+    //console.log(" ")
     while (count !== pPatterFound.length) {
-        if (pCountFound[count] > pPercentages[count].getPercentage() - 3
-            && pCountFound[count] < pPercentages[count].getPercentage() + 3) {
+        //console.log(pCountFound[count]," ",pPercentages[count].getPercentage());
+        if (pCountFound[count] > pPercentages[count].getPercentage() - 5
+            && pCountFound[count] < pPercentages[count].getPercentage() + 5) {
+            //console.log("true")
             trues++;
         }
         else {
+            //console.log("false")
             falses++;
         }
         count++;
@@ -159,7 +166,7 @@ function compareSegment(pCompar, pS1Segment, pPercentages) {
 }
 function getMatches() {
     const indices = [];
-    for (let i = 0; i < sectorsS1[0].length; i += Math.floor(sectorsS2[0].length / 32)) {
+    for (let i = 0; i < sectorsS1[0].length - 1; i += Math.floor(sectorsS2[0].length / 32)) {
         const percentage1 = compareSegment(sectorsS2[0].length / 2, sectorsS1[0]
             .slice(i, i + sectorsS2[0].length), infoChannels[0]);
         const percentage2 = compareSegment(sectorsS2[0].length / 2, sectorsS1[1]

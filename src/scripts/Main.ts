@@ -27,47 +27,45 @@ const readFile = (filepath: string) => {
     });
   });
 };
+if (command === "mt"||command === "umt") {
 
-readFile(S2).then((buffer) => {
-  return WavDecoder.decode(buffer);
-}).then(function (audioData) {
-  let count = 0;
-  for (let i = 0; i < audioData.channelData[0].length; i += LATTER_RATE) {
-    const channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + LATTER_RATE]);
-    const channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + LATTER_RATE]);
-    sectorsS2[0] = sectorsS2[0] + channel1;
-    sectorsS2[1] = sectorsS2[1] + channel2;
-    if (sectorsS2[0].length > PATTERN_SIZE) {
-      preAnal(sectorsS2[0], infoChannels[0], count);
-      preAnal(sectorsS2[1], infoChannels[1], count);
+  readFile(S2).then((buffer) => {
+    return WavDecoder.decode(buffer);
+  }).then(function (audioData) {
+    let count = 0;
+    for (let i = 0; i < audioData.channelData[0].length; i += LATTER_RATE) {
+      const channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + LATTER_RATE]);
+      const channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + LATTER_RATE]);
+      sectorsS2[0] = sectorsS2[0] + channel1;
+      sectorsS2[1] = sectorsS2[1] + channel2;
+      if (sectorsS2[0].length > PATTERN_SIZE) {
+        preAnal(sectorsS2[0], infoChannels[0], count);
+        preAnal(sectorsS2[1], infoChannels[1], count);
+      }
+      count++;
     }
-    count++;
-  }
-  getForm(sectorsS2[0])
-  console.log(sectorsS2[0])
-  infoChannels[0] = sortChannel(infoChannels[0]);
-  infoChannels[1] = sortChannel(infoChannels[1]);
-  let sum: number[] = [0,0];
-  sum[0] = getSum(infoChannels[0]);
-  sum[1] = getSum(infoChannels[1]);
-
-
-  count = 0;
-  //console.log(infoChannels)
-
-  while (count !== infoChannels[0].length) {
-    infoChannels[0][count].calcPercentage(sum[0]);
-    infoChannels[1][count].calcPercentage(sum[1]);
-    count++;
-  }
-});
-function getSum(pChannel: Pattern[]): number {
-  let sum = 0;
-  for (const pattern of pChannel) {
-    sum += pattern.getPoints().length
-  }
-  return sum;
+    getForm(sectorsS2[0])
+    console.log(sectorsS2[0])
+    infoChannels[0] = sortChannel(infoChannels[0]);
+    infoChannels[1] = sortChannel(infoChannels[1]);
+    let sum: number[] = [0, 0];
+    sum[0] = getSum(infoChannels[0]);
+    sum[1] = getSum(infoChannels[1]);
+    count = 0;
+    while (count !== infoChannels[0].length) {
+      infoChannels[0][count].calcPercentage(sum[0]);
+      infoChannels[1][count].calcPercentage(sum[1]);
+      count++;
+    }
+  });
 }
+  function getSum(pChannel: Pattern[]): number {
+    let sum = 0;
+    for (const pattern of pChannel) {
+      sum += pattern.getPoints().length
+    }
+    return sum;
+  }
 
 readFile(S1).then((buffer) => {
   return WavDecoder.decode(buffer);
@@ -235,6 +233,8 @@ function getForm( pSector: string):string{
 function compareSegment(pCompar: number, pS1Segment: string, pPercentages: Pattern[]): number {
   let count = 0;
   let rPoint;
+  let sum = 0;
+
   let tempString: string = '';
   let pointsToCompare = pCompar;
   let index = 0;
@@ -259,14 +259,9 @@ function compareSegment(pCompar: number, pS1Segment: string, pPercentages: Patte
     index = pPatterFound.indexOf(tempString);
     if (index !== -1) {
       pCountFound[index] = pCountFound[index] + 1;
-    }
-  }
+      sum++;
 
-  count = 0;
-  let sum = 0;
-  while (count !== pCountFound.length) {
-    sum = sum + pCountFound[count];
-    count++;
+    }
   }
 
   count = 0;
@@ -274,7 +269,6 @@ function compareSegment(pCompar: number, pS1Segment: string, pPercentages: Patte
     pCountFound[count] = sum != 0 ? (pCountFound[count]) * 100 / sum : 0;
     count++;
   }
-
   count = 0;
   let trues = 0;
   let falses = 0;

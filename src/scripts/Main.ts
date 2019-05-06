@@ -4,11 +4,9 @@ import * as WavDecoder from 'wav-decoder';
 // import { complex as fft } from 'fft';
 import * as WavEncoder from 'wav-encoder';
 import { Pattern } from './library/Patterns';
-import { PATTERN_SIZE} from './library/consts';
-import { BIT_RATE} from './library/consts';
-import { LATTER_RATE} from './library/consts';
-
+import { PATTERN_SIZE, BIT_RATE, LATTER_RATE, BITS, S2_MULTIPLIER } from './library/consts';
 import { getSector } from './library/sector';
+import { elastic_connection } from "./elastic_conection";
 
 const sectorsS1: string[] = ['', ''];
 const sectorsS2: string[] = ['', ''];
@@ -27,25 +25,28 @@ const readFile = (filepath: string) => {
     });
   });
 };
-if (command === "mt"||command === "umt") {
 
+if (command === "mt" || command === "umt" || command === "cmp") {
+  let rate = LATTER_RATE;
+  if("cmp"){
+    rate= rate*2;
+  }
   readFile(S2).then((buffer) => {
     return WavDecoder.decode(buffer);
   }).then(function (audioData) {
     let count = 0;
-    for (let i = 0; i < audioData.channelData[0].length; i += LATTER_RATE) {
-      const channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + LATTER_RATE]);
-      const channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + LATTER_RATE]);
+    for (let i = 0; i < audioData.channelData[0].length; i += rate) {
+      const channel1 = getSector(audioData.channelData[0][i], audioData.channelData[0][i + rate]);
+      const channel2 = getSector(audioData.channelData[1][i], audioData.channelData[1][i + rate]);
       sectorsS2[0] = sectorsS2[0] + channel1;
       sectorsS2[1] = sectorsS2[1] + channel2;
-      if (sectorsS2[0].length > PATTERN_SIZE) {
+      if ((command === "mt"||command === "umt"||command) && sectorsS2[0].length > PATTERN_SIZE) {
         preAnal(sectorsS2[0], infoChannels[0], count);
         preAnal(sectorsS2[1], infoChannels[1], count);
       }
       count++;
     }
-    getForm(sectorsS2[0])
-    console.log(sectorsS2[0])
+    getForm(sectorsS2[0]);
     infoChannels[0] = sortChannel(infoChannels[0]);
     infoChannels[1] = sortChannel(infoChannels[1]);
     let sum: number[] = [0, 0];
@@ -57,23 +58,12 @@ if (command === "mt"||command === "umt") {
       infoChannels[1][count].calcPercentage(sum[1]);
       count++;
     }
+    if (command === "cmp") {
+      sectorsS2[0]=getForm(sectorsS2[0]);
+      sectorsS2[1]=getForm(sectorsS2[1]);
+    }
   });
 }
-  function getSum(pChannel: Pattern[]): number {
-    let sum = 0;
-    for (const pattern of pChannel) {
-      sum += pattern.getPoints().length
-    }
-    return sum;
-  }
-  infoCH1 = infoCH1.sort((a, b) => (a.points.length < b.points.length) ? 1 : -1).slice(0, 8);
-  count = 0;
-  let sum = 0;
-  while (count != infoCH1.length) {
-    sum = sum + infoCH1[count].points.length;
-    count++;
-  }
-});
 function getSum(pChannel: Pattern[]): number {
   let sum = 0;
   for (const pattern of pChannel) {
@@ -109,7 +99,11 @@ readFile(S1).then((buffer) => {
     //console.log(b.length);
     const newSong = dj(audioData, [a,b]);
     createFile(newSong[0], newSong[1], "$dj.wav");
-
+  } else if(command === "cmp") {
+    sectorsS1[0]=getForm(sectorsS1[0]);
+    sectorsS1[1]=getForm(sectorsS1[1]);
+    Promise.resolve(compose(audioData))
+      .then( (result: Float32Array[]) => createFile(result[0], result[1], "$cmp.wav"));
   }
 });
 
@@ -195,6 +189,7 @@ function sortChannel(pChannel: Pattern[]):Pattern[] {
   return pChannel.sort((a, b) => (a.getPoints().length < b.getPoints().length) ? 1 : -1).slice(0, 8);
 }
 
+
 function preAnal(pCHString: string, infoCH: Pattern[], count: number) {
   let temp1 = '';
   let tempPat;
@@ -210,12 +205,13 @@ function preAnal(pCHString: string, infoCH: Pattern[], count: number) {
     infoCH.push(tempPat);
   } else {
     tempPat.addPoint(count);
+
   }
 }
 
 function getForm( pSector: string):string{
   let temp:string = "";
-  let cont = 0
+  let cont = 0;
   let result="";
   while(cont!=pSector.length){
     temp+=pSector[cont];
@@ -275,18 +271,12 @@ function compareSegment(pCompar: number, pS1Segment: string, pPercentages: Patte
     }
   }
 
+
   count = 0;
   while (count !== pCountFound.length) {
     pCountFound[count] = sum != 0 ? (pCountFound[count]) * 100 / sum : 0;
     count++;
   }
-  count = 0;
-  while (count != pCoundFound.length) {
-    pCoundFound[count] = (pCoundFound[count]) * 100 / sum;
-    count++;
-  }
-
-
   count = 0;
   let trues = 0;
   let falses = 0;
@@ -296,6 +286,7 @@ function compareSegment(pCompar: number, pS1Segment: string, pPercentages: Patte
 
     if (pCountFound[count] > pPercentages[count].getPercentage() - 3
       && pCountFound[count] < pPercentages[count].getPercentage() + 3) {
+      //console.log("true")
       trues++;
     } else {
       //console.log("false")
@@ -304,8 +295,8 @@ function compareSegment(pCompar: number, pS1Segment: string, pPercentages: Patte
     count++;
   }
   return (trues) * 100 / (trues + falses);
-}
 
+}
 function getMatches(): number[] {
   const indices: number[] = [] ;
   for (let i = 0; i < sectorsS1[0].length - 1; i += Math.floor(sectorsS2[0].length / 32)) {
@@ -318,6 +309,7 @@ function getMatches(): number[] {
       i += sectorsS2[0].length;
     }
   }
+  console.log("Se encontraron: "   + indices.length);
   return indices;
 }
 
@@ -336,7 +328,6 @@ function dj(audioData: any, sectors: any[]): Float32Array[] {
   const exit: Float32Array[] = [new Float32Array(length), new Float32Array(length)];
   let exitIndex = 0;
   while (exitIndex < length) {
-    //console.log(exit[0].length);
     const effect = Math.round(Math.random() * 2);
     const index = Math.round(Math.random() * (sectors[0].length - 1));
     const data: number[][] = [[],[]];
@@ -382,41 +373,111 @@ function unMatch(audioData: any, indices: number[], pChannel: number): Float32Ar
   return audio;
 }
 
-function dj(audioData: any, sectors: any[]): Float32Array[] {
-  const length = 44100 * 60 * (Math.random() + 1);
-  const exit: Float32Array[] = [new Float32Array(length), new Float32Array(length)];
-  let exitIndex = 0;
-  while (exitIndex < length) {
-    //console.log(exit[0].length);
-    const effect = Math.round(Math.random() * 2);
-    const index = Math.round(Math.random() * (sectors[0].length - 1));
-    const data: number[][] = [[],[]];
-    for (let side = 0; side < 2; side++) {
-      let sectorIndex = sectors[side][index].index * 66;
-      const sectorSize = sectorIndex + sectors[side][index].sector.length * 66;
-      while (sectorIndex < sectorSize) {
-        data[side].push(audioData.channelData[side][sectorIndex]);
-        sectorIndex++;
+async function compose(audioData: any) {
+  const rangesS1 = await [ranges(sectorsS1[0]), ranges(sectorsS1[1])];
+  const rangesS2 = await [ranges(sectorsS2[0]), ranges(sectorsS2[1])];
+  const elasticLeft = new elastic_connection("left");
+  const elasticRight = new elastic_connection("right");
+  const newLength = sectorsS2[0].length * S2_MULTIPLIER;
+  let left = [];
+  let right = [];
+  const result:Float32Array[] = [];
+  let gen = 0;
+  let newPercentages = [rangesS1[0][1], rangesS2[1][1]];
+  do {
+    while (left.length < newLength) {
+      let newLetter = getLetter(rangesS1, 0);
+      left.push({letter: newLetter[0], index: newLetter[1]});
+    }
+    while (right.length < newLength) {
+      let newLetter = getLetter(rangesS1, 1);
+      right.push({letter: newLetter[0], index: newLetter[1]});
+    }
+    await elasticLeft.bulkData(left);
+    await elasticRight.bulkData(right);
+    let index  = 0;
+    while (index < rangesS2[0][0].length) {
+      await elasticLeft.getData( Math.round(newLength * rangesS2[0][1][index] / 100), rangesS2[0][0][index]);
+      await elasticRight.getData(Math.round(newLength * rangesS2[1][1][index] / 100), rangesS2[1][0][index]);
+      index++;
+    }
+    console.log(left.length,newLength)
+    let a = elasticLeft.getInfo();
+    let b = elasticRight.getInfo();
+    left = a[0];
+    right = b[0];
+    newPercentages = [[],[]];
+    a[1].forEach((item: number) => newPercentages[0].push(item / newLength * 100));
+    b[1].forEach((item: number) => newPercentages[1].push(item / newLength * 100));
+    console.log(`Generacion ${gen++}`);
+    await elasticLeft.deleteData();
+    await elasticRight.deleteData();
+  } while (!checkPercentages(newPercentages[0], rangesS2[0][1]) || !checkPercentages(newPercentages[1], rangesS2[1][1]));
+  result.push(new Float32Array(left.length * 22 * 3));
+  result.push(new Float32Array(right.length * 22 * 3));
+  const sorted = sortSong([left,right]);
+  let resultIndex = 0;
+  sorted[0].forEach((item: any) => {
+    let index = item.index * 22 * 3;
+    const end = index + 22 * 3;
+    while (index < end) {
+      result[0][resultIndex++] = audioData.channelData[0][index++];
+    }
+  });
+  resultIndex = 0;
+  sorted[1].forEach((item: any) => {
+    let index = item.index * 22 * 3;
+    const end = index + 22 * 3;
+    while (index < end) {
+      result[1][resultIndex++] = audioData.channelData[1][index++];
+    }
+  });
+  return result;
+}
+function sortSong(SongCh : any[][]){
+  let newSectors2: any[][] = [[],[]];
+  for (let channel= 0; channel < 2; channel++) {
+    let index  = 0;
+    while(index<sectorsS2[channel].length){
+      for(let i = 0;i < S2_MULTIPLIER; i++){
+        const matches = SongCh[channel].filter((item) => item.letter === sectorsS2[index]);
+        newSectors2[channel].push(matches[(matches.length - 1) * Math.random()]);
       }
-    }
-    let newData = [];
-    if (effect === 2) {
-      const effectLength = (Math.random() * 3 + 4) * 44100;
-      newData = makeLoop(data, effectLength);
-    } else if (effect === 1) {
-      const effectLength = 4 * 44100;
-      newData = makeLeftToRight(data, effectLength);
-
-    } else {
-      const effectLength = (Math.random() * 4 + 6) * 44100;
-      newData = makeSoundAndSilence(data, effectLength);
-    }
-    for(let i = 0; i < newData[0].length; i++) {
-      exit[0][exitIndex] = newData[0][i];
-      exit[1][exitIndex++] = newData[1][i];
+      index++;
     }
   }
-  return exit;
+  return newSectors2;
+}
+function getLetter(ranges: any[], channel: number): any[] {
+  const rand = Math.round(Math.random() * Math.pow(2, BITS));
+  let found = false;
+  let index = 0;
+  while (!found) {
+    if(ranges[channel][2][index][0] <= rand && ranges[channel][2][index][1] > rand) {
+      found = true;
+    } else {
+      index++;
+    }
+  }
+
+  const newIndex = Math.round((ranges[channel][3][index].length -1) * Math.random());
+  return [ranges[channel][0][index], ranges[channel][3][index][newIndex]];
+}
+
+function checkPercentages(percentages1: number[], percentages2: number[]) {
+  if (percentages1.length === 0) {
+    return false;
+  }
+  console.log(percentages1);
+  console.log(percentages2);
+  for (let i = 0; i < percentages1.length; i++) {
+    const per1 = Math.round(percentages1[i]);
+    const per2 = Math.round(percentages2[i]);
+    if (per1 != per2) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function createFile(pChannel1: Float32Array, pChannel2: Float32Array, pName: string) {
@@ -431,4 +492,36 @@ function createFile(pChannel1: Float32Array, pChannel2: Float32Array, pName: str
   WavEncoder.encode(newAudio).then((buffer: any) => {
     fs.writeFileSync(pName, Buffer.from(buffer));
   });
+}
+
+function ranges(s: string): any[] {
+  const LetterFound: string[] = [];
+  const CountFound: number[] = [];
+  const RangesFound: number[][] = [];
+  const Letters: number[][] = [];
+  let lastFound = 0;
+  for (let i = 0; i < s.length; i++) {
+    let foundIndex = LetterFound.indexOf(s[i]);
+    if (foundIndex == -1) {
+      LetterFound.push(s[i]);
+      CountFound.push(1);
+      Letters.push([i]);
+    } else {
+      CountFound[foundIndex]++;
+      Letters[foundIndex].push(i);
+
+    }
+  }
+  for (let i = 0; i < CountFound.length; i++) {
+    CountFound[i] = (CountFound[i]) *100 / s.length;
+    const newRange = Math.round(CountFound[i]/100 * Math.pow(2, BITS));
+    RangesFound.push([lastFound, lastFound + newRange]);
+    lastFound += newRange;
+  }
+  let Result : any[][]=[];
+  Result.push(LetterFound);
+  Result.push(CountFound);
+  Result.push(RangesFound);
+  Result.push(Letters);
+  return Result;
 }

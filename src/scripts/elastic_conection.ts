@@ -1,52 +1,85 @@
-import { ELASTIC_IP, ELASTIC_PORT } from './library/consts';
-const { Client } = require('@elastic/elasticsearch');
+import {ELASTIC_IP, ELASTIC_PORT} from './library/consts';
+import {ApiResponse, Client, RequestParams} from "@elastic/elasticsearch";
+import {Index} from "@elastic/elasticsearch/api/requestParams";
+
+//const { Client, RequestParams } = require('@elastic/elasticsearch');
 
 const URL = `http://${ELASTIC_IP}:${ELASTIC_PORT}`;
 const url = 'https://jsonplaceholder.typicode.com/todos/1';
 
-function getData(response: object): any[] {
-  const data = JSON.parse(JSON.stringify(response)).body.hits.hits;
-  for (let element of data) {
-    element = JSON.parse(JSON.stringify(element));
-  }
-  return data;
-}
+export class elastic_connection {
+  private Data: object[] = [];
+  private client: any;
+  private Index: string;
+  private Hits: any[] = [];
 
-export async function getAll(pIndex: string) {
-  const client = new Client({ node: URL });
-  await client.search({
-    index: pIndex,
-    body: {
-      query: {
-        match_all: {}
+  constructor(pIndex: string) {
+    this.client = new Client({node: URL});
+    this.Index = pIndex;
+  }
+
+
+  private readData(response: any) {
+    response.body.hits.hits.forEach((element: any) =>
+      this.Data.push({
+        letter: element._source.letter,
+        index: element._source.index
+      }));
+    this.Hits.push(response.body.hits.total);
+  }
+
+  public async getData(pSize: number, pLetter: string) {
+    const params: RequestParams.Search = {
+      index: this.Index,
+      body: {
+        size: pSize,
+        query: {
+          match: {
+            "letter": pLetter
+          }
+        }
       }
-    }
-  }).then(function (response: any) {
-    const data = getData(response);
-    for (const element of data) {
-      console.log(element._source);
-    }
-  },      function (err: any) {
-    console.trace(err.message);
-  });
-  client.close();
-}
+    };
+    return await this.client.search(params)
+      .then((response: ApiResponse) => {
+        this.readData(response);
+      }, (err: Error) => console.trace(err.message));
 
-export async function sendData(info: any[], index: string) {
-  const client = new Client({ node: URL });
-  let bodyData = [];
-  for (const data of info) {
-    bodyData.push({ index: { _index: index } });
-    bodyData.push(data);
   }
-  await client.bulk({
-    index: index,
-    refresh : true,
-    type: 1,
-    body : bodyData
-  }).then(function (resp: any) {
-  }, function (err: any) {
-    console.trace(err.message);
-  });
-  client.close();
+
+  public getInfo(): any[] {
+    return [this.Data, this.Hits];
+  }
+
+  public async bulkData(info: any[]) {
+    await Promise.all([
+      this.sendData(info.slice(0, info.length / 3)),
+      this.sendData(info.slice(info.length / 3, info.length / 3 * 2)),
+      this.sendData(info.slice(info.length/ 3 * 2, info.length)),
+    ])
+  }
+
+  public async sendData(info: any[]) {
+    let bodyData = [];
+    for (const data of info) {
+      bodyData.push({index: {_index: this.Index}});
+      bodyData.push(data);
+    }
+    const params = {
+      index: this.Index,
+      refresh: true,
+      type: 1,
+      body: bodyData
+    };
+    return await this.client.bulk(params);
+  }
+
+  public deleteData() {
+    this.Data = [];
+    this.Hits = [];
+    this.client.indices.delete({
+      index: this.Index
+    }).then((resp: any) => {},
+      (err: any) => console.trace(err.message));
+  }
 }

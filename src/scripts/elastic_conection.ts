@@ -5,81 +5,91 @@ import {Index} from "@elastic/elasticsearch/api/requestParams";
 //const { Client, RequestParams } = require('@elastic/elasticsearch');
 
 const URL = `http://${ELASTIC_IP}:${ELASTIC_PORT}`;
-const url = 'https://jsonplaceholder.typicode.com/todos/1';
 
 export class elastic_connection {
-  private Data: object[] = [];
-  private client: any;
-  private Index: string;
-  private Hits: any[] = [];
+  private Indices: number[][] = [[],[]];
+  private client: Client;
 
-  constructor(pIndex: string) {
+  constructor() {
     this.client = new Client({node: URL});
-    this.Index = pIndex;
   }
-
 
   private readData(response: any) {
-    response.body.hits.hits.forEach((element: any) =>
-      this.Data.push({
-        letter: element._source.letter,
-        index: element._source.index
-      }));
-    this.Hits.push(response.body.hits.total);
+    const hits = response.body.hits.hits;
+    let channel = 0;
+    if (this.Indices[0].length !== 0) {
+      channel = 1;
+    }
+    hits.forEach((song: any) =>
+      this.Indices[channel].push(song._source)
+    );
   }
 
-  public async getData(pSize: number, pLetter: string) {
+  public async getData(pIndex: string) {
+    //console.log("getData");
+    const client = new Client({node: URL});
     const params: RequestParams.Search = {
-      index: this.Index,
+      index: pIndex,
       body: {
-        size: pSize,
-        query: {
-          match: {
-            "letter": pLetter
+        from : 0,
+        size : 5,
+        sort: [
+          {
+            score : {
+              order : "desc"
+            }
           }
-        }
+        ]
       }
     };
-    return await this.client.search(params)
-      .then((response: ApiResponse) => {
-        this.readData(response);
-      }, (err: Error) => console.trace(err.message));
-
+    const x = await client.search(params);
+    await this.readData(x);
+    client.close();
+    return x;
   }
 
-  public getInfo(): any[] {
-    return [this.Data, this.Hits];
+  public getInfo(pChannel: number): number[] {
+    return this.Indices[pChannel];
   }
 
-  public async bulkData(info: any[]) {
-    await Promise.all([
-      this.sendData(info.slice(0, info.length / 3)),
-      this.sendData(info.slice(info.length / 3, info.length / 3 * 2)),
-      this.sendData(info.slice(info.length/ 3 * 2, info.length)),
-    ])
+  public async sendData(info: any) {
+    const client = new Client({node: URL});
+    this.Indices = [[],[]];
+    //console.log("sendData");
+    const result = client.bulk({
+      index: "_all",
+      body: info
+    });
+    client.close();
+    return result;
   }
 
-  public async sendData(info: any[]) {
-    let bodyData = [];
-    for (const data of info) {
-      bodyData.push({index: {_index: this.Index}});
-      bodyData.push(data);
-    }
-    const params = {
-      index: this.Index,
-      refresh: true,
-      type: 1,
-      body: bodyData
-    };
-    return await this.client.bulk(params);
-  }
+  public async deleteData(pIndex: string) {
+    const client = new Client({node: URL})
+    this.Indices = [[],[]];
+    console.log("deleteData");
+    /*return this.client.indices.delete({
+      index: pIndex
+    })*/
 
-  public deleteData() {
-    this.Data = [];
-    this.Hits = [];
-    this.client.indices.delete({
-      index: this.Index
-    }).then((resp: any) => {},
-      (err: any) => console.trace(err.message));
+    const a =  client.delete_by_query({
+      index: "_all",
+      body: {
+        query : {
+          match_all: {}
+        }
+      }
+    },(err: any, resp) => {
+      if (err) {
+        console.log(err.meta.body.failures);
+      }
+    });
+    client.close();
+    return a;
+  }
+  public async createIndex(pIndex: string) {
+    return this.client.indices.create({
+      index: pIndex
+    });
   }
 }

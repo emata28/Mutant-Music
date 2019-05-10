@@ -2,14 +2,14 @@
 # yarn lockfile v1
 
 
-"@elastic/elasticsearch@^6.7.0-rc.1":
-  version "6.7.0-rc.1"
-  resolved "https://registry.yarnpkg.com/@elastic/elasticsearch/-/elasticsearch-6.7.0-rc.1.tgz#40761fea4a9ffbb65ae354f1de56e0fe0cdafb86"
-  integrity sha512-iNIX00VSEcwITl9Zwo800YxJ34uTEvlXI4Pe8rQalEXYWm4E2EYynxE5PblPIWDr3srVAcqNk7F9HooKaLxIlg==
+"@elastic/elasticsearch@^7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@elastic/elasticsearch/-/elasticsearch-7.0.0.tgz#a5fa7010ecc02f5f9beafed0c785adcf402d6f76"
+  integrity sha512-nwzhSBVX9NwZj7FMYqWxXpKORaY7hsoSM1UKqSe0HnbHuFPMv1CMC2hS3jtOeQImyaykwhvPTyU9hF7A3qo93Q==
   dependencies:
     debug "^4.1.1"
-    decompress-response "^4.0.0"
-    into-stream "^4.0.0"
+    decompress-response "^4.2.0"
+    into-stream "^5.1.0"
     ms "^2.1.1"
     once "^1.4.0"
     pump "^3.0.0"
@@ -153,7 +153,7 @@ debug@^4.1.1:
   dependencies:
     ms "^2.1.1"
 
-decompress-response@^4.0.0:
+decompress-response@^4.2.0:
   version "4.2.0"
   resolved "https://registry.yarnpkg.com/decompress-response/-/decompress-response-4.2.0.tgz#805ca9d1d3cdf17a03951475ad6cdc93115cec3f"
   integrity sha512-MHebOkORCgLW1ramLri5vzfR4r7HgXXrVkVr/eaPVRCtYWFUp9hNAuqsBxhpABbpqd7zY2IrjxXfTuaVrW0Z2A==
@@ -210,7 +210,7 @@ fourier-transform@1.1.2:
   resolved "https://registry.yarnpkg.com/fourier-transform/-/fourier-transform-1.1.2.tgz#53927cefa86958eb1fd2148af46c6d3fc5e79b64"
   integrity sha1-U5J876hpWOsf0hSK9GxtP8Xnm2Q=
 
-from2@^2.1.1:
+from2@^2.3.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/from2/-/from2-2.3.0.tgz#8bfb5502bde4a4d36cfdeea007fcca21d7e382af"
   integrity sha1-i/tVAr3kpNNs/e6gB/zKIdfjgq8=
@@ -265,12 +265,12 @@ inherits@2, inherits@^2.0.1, inherits@~2.0.3:
   resolved "https://registry.yarnpkg.com/inherits/-/inherits-2.0.3.tgz#633c2c83e3da42a502f52466022480f4208261de"
   integrity sha1-Yzwsg+PaQqUC9SRmAiSA9CCCYd4=
 
-into-stream@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/into-stream/-/into-stream-4.0.0.tgz#ef10ee2ffb6f78af34c93194bbdc36c35f7d8a9d"
-  integrity sha512-i29KNyE5r0Y/UQzcQ0IbZO1MYJ53Jn0EcFRZPj5FzWKYH17kDFEOwuA+3jroymOI06SW1dEDnly9A1CAreC5dg==
+into-stream@^5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/into-stream/-/into-stream-5.1.0.tgz#b05f37d8fed05c06a0b43b556d74e53e5af23878"
+  integrity sha512-cbDhb8qlxKMxPBk/QxTtYg1DQ4CwXmadu7quG3B7nrJsgSncEreF2kwWKZFdnjc/lSNNIkFPsjI7SM0Cx/QXPw==
   dependencies:
-    from2 "^2.1.1"
+    from2 "^2.3.0"
     p-is-promise "^2.0.0"
 
 inversify@^5.0.0:
@@ -444,6 +444,11 @@ sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw=
+
+string-hash@^1.1.3:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/string-hash/-/string-hash-1.1.3.tgz#e8aafc0ac1855b4666929ed7dd1275df5d6c811b"
+  integrity sha1-6Kr8CsGFW0Zmkp7X3RJ1311sgRs=
 
 string_decoder@~1.1.1:
   version "1.1.1"

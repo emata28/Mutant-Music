@@ -8,10 +8,5 @@ export function getSector(pNum1: number,pNum2: number): string {
 }else {
   return "S";
 
-}
-
-
-
-
-
+  }
 }
